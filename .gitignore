@@ -1,0 +1,53 @@
+# Original lessons, voice references, intermediates and generated audio.
+inputs/
+voices/
+models/
+work/
+outputs/
+downloads/
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.opus
+*.m4a
+*.aac
+*.mp4
+*.mkv
+
+# Model weights and binary packages.
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# Python environments and caches.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+*.egg-info/
+build/
+dist/
+
+# Local configuration and credentials.
+.env
+.env.*
+!.env.example
+credentials*.json
+token*.json
+*.pem
+*.key
+*.log
+.DS_Store
+Thumbs.db

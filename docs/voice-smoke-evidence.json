@@ -1,0 +1,68 @@
+{
+  "identity": {
+    "profile": "oleksii_day1",
+    "source_sha256": "9df15e3e321bda7d880f533afe27b586801d84d2e5719565943858a5a6c6a3c2",
+    "script_sha256": "55210898adb4c47979cf66c434720a4b9e51423df75125b5a7c598647ddc5068",
+    "models": {
+      "OpenVoiceV2/tone_ref_encoder.onnx": "3dd4918cab90e1acf7fa5c6f7539c27710e7a3cdfba550468c5ea49399178bf7",
+      "OpenVoiceV2/encoder-flow.onnx": "831fe762c0b47137e20753b9023b3901fc229bbc05bd6644ddce7073d7015404",
+      "OpenVoiceV2/decoder.onnx": "9d57879aff5d3d50ae810b4e4791170b3fd1d27004be71fc2ae3f90afd588d36",
+      "Holos/encoder.onnx": "625ef992925aa37a9c4c2c08be0497b2c69e68a1f92c6062f2deb8ea098858da",
+      "Holos/prosody.onnx": "46a2aa55bc5a2d0f071bf9a5060b4edf8a20ad7bfb9c270ef53c129681454dda",
+      "Holos/source.onnx": "60210f55b177b7165de9c17764cd53881e27245b4610ca56561d5e59a12b855b",
+      "Holos/decoder_window.onnx": "7bd22e07b1146be93296f75805bd0515cd254a7dd3402b0f3f8f170820277994",
+      "voices/holos/oleksii_day1.npy": "dd24256cfb32a358f82eea502e80222a4484011460e94d6826ed8c714ce0ace7",
+      "voices/classmate_locales/oleksii_day1.npy": "23742eb3b253a7aa588c70485736f77b6543e33de43fe64e2161d7b68ed1e80f"
+    },
+    "teacher_reference": [
+      16.14,
+      50.0
+    ]
+  },
+  "segments": {
+    "smoke_uk": {
+      "segment_sha256": "0c13aa166ad9f642a13432bcdd35e24975c87251cd71cc26757c5c34fc878955",
+      "wav_sha256": "b595c30ae51dbdcfb4c0cd85733bb861546dbe7791e509b08e08d50e87cea2d9",
+      "mode": "tts",
+      "language": "uk",
+      "source_start": 16.14,
+      "source_end": 21.0,
+      "output_seconds": 2.56,
+      "sample_rate": 24000,
+      "peak_before_gain": 0.4719792306423187,
+      "gain": 1.0,
+      "wall_seconds": 2.505182061999676,
+      "text": "Сьогодні ми вивчаємо словацьку мову.",
+      "pronunciation_reviewed": false
+    },
+    "smoke_sk": {
+      "segment_sha256": "f1b0490df1622b5a2ed5e52da91dd68a76c9327cfba6c925b6141f4ca1952e33",
+      "wav_sha256": "7f492189d50b907b521bfffdb7aebc5d499b046e4c5d412e1ca27898cf6c342b",
+      "mode": "convert",
+      "language": "sk",
+      "source_start": 16.14,
+      "source_end": 20.26,
+      "output_seconds": 4.12,
+      "sample_rate": 24000,
+      "peak_before_gain": 0.5620338916778564,
+      "gain": 1.0,
+      "wall_seconds": 3.336344634999932,
+      "text": "No dobrý deň, vitajte v ďalšom videu, povieme si správne odpovede testu.",
+      "pronunciation_reviewed": false
+    }
+  },
+  "automatic_audio_checks_only": true,
+  "runtime_source": {
+    "repository": "Oleksii-debug/ChatGPT-Autopilot-ExtensionChatGPT-Autopilot-Extension",
+    "commit": "09f4ec8453344b500dd15ecf7bd279339910c5fe",
+    "source_snapshot_sha256": "964562dc4da4a99c34d266127f6e7c13026d5deedb76f7c6bf3529dce60bb8ce",
+    "key_files_compared_to_snapshot": true
+  },
+  "resource_origin": {
+    "archive_name": "dordiai-voices-0.13.1-dev.4.nvda-addon",
+    "archive_sha256": "b80f0f2a428ba097b37437ccfd028ce41630b73fd92c5cfa9539da1b08a1b90e",
+    "restore_verified": true,
+    "private_voice_data_uploaded_to_repository": false
+  },
+  "meaning": "Technical smoke of the existing selected voice; not a full lesson and not listening acceptance."
+}

@@ -1,0 +1,37 @@
+# Python 3.12; actual Linux CPU pilot environment, 2026-11-26.
+# The existing private dordiai runtime also supplies holos_onnx, ipa_uk,
+# and ukrainian_word_stress 2.1.0 plus its dictionary. Do not fetch an
+# unrelated similarly named package as a substitute.
+numpy==2.3.5
+scipy==1.17.0
+onnxruntime==1.27.0
+piper-tts==1.8.0
+soundfile==0.14.0
+marisa-trie==1.4.1
+num2words==0.5.14
+docopt==0.6.2
+flatbuffers==25.12.19
+pathvalidate==3.3.1
+protobuf==7.36.2
+cffi==2.1.1
+packaging==26.4
+pycparser==3.0
+
+# Actual network TTS stage; HTTP(S) proxy only in the measured environment.
+# Neither aiohttp-socks nor python-socks was installed or used.
+edge-tts==7.3.1
+aiohttp==3.14.5
+aiohappyeyeballs==2.7.1
+aiosignal==1.4.0
+attrs==26.1.0
+frozenlist==1.8.0
+multidict==7.2.1
+propcache==0.5.4
+yarl==1.25.1
+certifi==2026.11.20
+typing_extensions==4.16.0
+tabulate==0.10.0
+idna==3.20
+
+# Needed only by prepare_linux_holos.py; not by voice synthesis.
+onnx==1.23.2
