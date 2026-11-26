@@ -114,6 +114,23 @@ class AssemblyTests(unittest.TestCase):
         self.assertAlmostEqual(report["timeline_duration"], 1.6)
         self.assertEqual(report["timing_policy"], "natural_speech_preserve_source_gaps")
 
+    def test_lossless_intermediate_preserves_every_pcm_sample(self):
+        self.write_manifest()
+        output = self.root / "speech.flac"
+        report = assembler.assemble(self.manifest, 1.4, output,
+                                    self.root / "lossless.json", pad_shorter=False)
+        decoded = subprocess.run(["ffmpeg", "-v", "error", "-i", str(output),
+                                  "-f", "s16le", "pipe:1"],
+                                 capture_output=True, check=True).stdout
+        def pcm(name):
+            with wave.open(str(self.root / name), "rb") as reader:
+                return reader.readframes(reader.getnframes())
+        silence = lambda seconds: b"\0" * (round(seconds * 24000) * 2)
+        expected = (silence(.1) + pcm("first.wav") + silence(.3) +
+                    pcm("second.wav") + silence(.1) + pcm("third.wav") + silence(.3))
+        self.assertEqual(decoded, expected)
+        self.assertEqual(report["format"], "flac")
+
 
 if __name__ == "__main__":
     unittest.main()

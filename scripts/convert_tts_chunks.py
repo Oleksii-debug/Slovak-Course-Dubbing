@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Convert clean foreign-language TTS into the selected dordiai voice.
 
-This is the accepted pilot route for Slovak after raw-teacher conversion failed
-sampled intelligibility QA. It consumes already generated ID.mp3/WAV files and
-does not call a speech service. Whole-utterance latent conversion matches the
-sampled successful Brian-Slovak-to-Oleksii2 probe. Keep utterances under 30 s.
+Consumes already generated ID.mp3/WAV files without calling a speech service.
+Use a clean source reference from the same base voice, and inspect pronunciation
+after conversion. Timing and finite PCM alone do not prove native pronunciation.
+Keep utterances under 30 s.
 """
 from __future__ import annotations
 
@@ -60,7 +60,8 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--source-reference", type=Path, required=True)
     parser.add_argument("--extension", choices=(".mp3", ".wav"), default=".mp3")
-    parser.add_argument("--source-voice", default="en-US-BrianMultilingualNeural")
+    parser.add_argument("--source-voice", default="sk-SK-LukasNeural")
+    parser.add_argument("--language", choices=("sk", "en"), help="select one language when base voices differ")
     parser.add_argument("--runtime", type=Path, required=True)
     parser.add_argument("--models", type=Path, required=True)
     parser.add_argument("--extras", type=Path, required=True)
@@ -72,6 +73,8 @@ def main():
     raw = json.loads(args.segments.read_text(encoding="utf-8"))
     rows = raw["segments"] if isinstance(raw, dict) else raw
     rows = [s for s in rows if s["language"] in {"sk", "en"}]
+    if args.language:
+        rows = [s for s in rows if s["language"] == args.language]
     if not rows:
         raise ValueError("No reviewed foreign-language segments")
     seen = set()
@@ -129,7 +132,7 @@ def main():
                          "wall_seconds": time.monotonic()-begin,
                          "pronunciation_reviewed": False}
         write_json(path, {"identity": identity, "segments": records,
-                          "sampled_route_intelligibility_checked": True,
+                          "sampled_route_intelligibility_checked": False,
                           "every_chunk_pronunciation_reviewed": False})
         print(f"{number}/{len(rows)} {name}: TTS projected {len(projected)/24000:.2f}s", flush=True)
     print(f"Converted {len(rows)} foreign-language TTS chunks", flush=True)

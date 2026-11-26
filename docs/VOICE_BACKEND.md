@@ -1,5 +1,23 @@
 # Existing dordiai-voices backend
 
+## Current revision for lesson 576
+
+The active path uses native Ukrainian Holos with explicit stress and bounded
+punctuation timing, native-locale `sk-SK-LukasNeural` for Slovak, and
+`en-US-GuyNeural` for isolated English examples. Each foreign base voice has its
+own clean reference embedding before projection into `oleksii_day1`. See
+[TEACHING_VOICE.md](TEACHING_VOICE.md) and [SOUNDSCAPE.md](SOUNDSCAPE.md).
+The Brian measurements below are historical evidence from lesson 575, not a
+claim of native pronunciation for the new route.
+
+The additional private calibration JSON files were recovered from the same
+verified core archive. For `oleksii_day1`, delivery gain is 1.111278 and quiet
+conditioning is 0. No separate reference-pitch calibration is present for this
+profile. The available assets do not contain an original enrollment recording
+that independently establishes speaker identity.
+
+## Historical first-pilot evidence
+
 **Pilot QA update:** Ukrainian output passed the sampled automatic content and
 number checks. The initial split-graph OpenVoice path failed the sampled Slovak
 intelligibility check on the original teacher recording. Those converted chunks
@@ -9,7 +27,7 @@ An unmodified full FP32 converter also failed this raw-recording check.
 The chosen repair is **clean Slovak TTS followed by conversion to Олексій 2**;
 the sampled repaired output retained all three Slovak test sentences in ASR.
 
-## Chosen route for the listening lesson
+## First-pilot route for lesson 575
 
 1. Reviewed Russian explanation text is translated into Ukrainian and read by
    native Holos with the existing `oleksii_day1` profile.
@@ -41,6 +59,7 @@ python scripts/convert_tts_chunks.py \
   --segments "$DUBBING_REVIEWED_SEGMENTS" \
   --output-dir "$DUBBING_FOREIGN_PROJECTED" \
   --source-reference "$DUBBING_BRIAN_SLOVAK_REFERENCE" \
+  --source-voice en-US-BrianMultilingualNeural --language sk \
   --extension .wav \
   --runtime "$DUBBING_RUNTIME_SOURCE" \
   --models "$DUBBING_MODELS" \
@@ -108,7 +127,7 @@ is not claimed. Existing project checkouts and original archives remain intact.
 python scripts/prepare_linux_holos.py --models "$DUBBING_MODELS"
 ```
 
-## Render a reviewed segment manifest
+## Legacy experimental adapter (not the current teaching path)
 
 Install the package versions in `requirements-voice.lock.txt` into an isolated
 Python 3.12 environment. The supplied private runtime's pure Python

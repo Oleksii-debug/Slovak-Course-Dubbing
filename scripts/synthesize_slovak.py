@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Synthesize reviewed Slovak spans with one multilingual male base voice.
+"""Synthesize reviewed Slovak spans, or explicit English examples.
 
 Uses the Edge speech service through edge-tts; this stage requires network.
-Short Slovak words are language-primed and cropped using returned word timings.
+The Slovak voice needs no language primer. Legacy multilingual voices still
+prime short words and crop that primer using returned word timings.
 Only the reviewed text is sent. The source recording is never uploaded.
 """
 from __future__ import annotations
@@ -46,9 +47,11 @@ async def run(args):
         edge_tts.voices._SSL_CTX.load_verify_locations(certificate)
     raw = json.loads(args.segments.read_text(encoding="utf-8"))
     rows = raw["segments"] if isinstance(raw, dict) else raw
-    rows = [row for row in rows if row["language"] == "sk"]
+    rows = [row for row in rows if row["language"] == args.language]
     if not rows:
-        raise ValueError("No reviewed Slovak text was supplied")
+        raise ValueError("No reviewed " + args.language + " text was supplied")
+    if args.language == "en" and not args.voice.startswith("en-"):
+        raise ValueError("English examples require an explicit English voice")
     ids = [str(row["id"]) for row in rows]
     if len(ids) != len(set(ids)) or any(not re.fullmatch(r"[A-Za-z0-9_-]+", i) for i in ids):
         raise ValueError("Invalid or duplicate segment identifiers")
@@ -62,10 +65,12 @@ async def run(args):
             raise ValueError("Missing reviewed text for " + name)
         # A single a/sa/si must not be interpreted as an English word by the
         # multilingual voice. The spoken prefix is removed, never delivered.
-        prefix = str(row.get("tts_prefix", "Po slovensky poviem: " if len(text.split()) < 5 else ""))
+        native_slovak = args.voice.startswith("sk-SK-")
+        default_prefix = "Po slovensky poviem: " if args.language == "sk" and not native_slovak and len(text.split()) < 5 else ""
+        prefix = str(row.get("tts_prefix", default_prefix))
         if prefix and prefix != "Po slovensky poviem: ":
             raise ValueError("Only the validated Slovak context prefix is supported")
-        identity = {"text": text, "language": "sk", "voice": args.voice,
+        identity = {"text": text, "language": args.language, "voice": args.voice,
                     "rate": args.rate, "prefix": prefix}
         fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True,
                                                ensure_ascii=False).encode()).hexdigest()
@@ -74,7 +79,7 @@ async def run(args):
         if wav_path.exists() and meta_path.exists():
             previous = json.loads(meta_path.read_text())
             if previous.get("fingerprint") == fingerprint and previous.get("sha256") == digest(wav_path):
-                print(name + ": reused verified Slovak WAV", flush=True)
+                print(name + ": reused verified speech WAV", flush=True)
                 return {"id": name, **previous}
         async with semaphore:
             start = time.monotonic()
@@ -121,19 +126,20 @@ async def run(args):
                       "prefix_removed_seconds": cut_start, "boundaries": events,
                       "wall_seconds": time.monotonic() - start}
             write_json(meta_path, result)
-            print(f"{name}: Slovak TTS {frames/rate:.2f}s", flush=True)
+            print(f"{name}: {args.language} TTS {frames/rate:.2f}s", flush=True)
             return {"id": name, **result}
 
     results = await asyncio.gather(*(render(row) for row in rows))
     write_json(args.output_dir / args.manifest_name, {"voice": args.voice, "segments": results})
-    print(f"Completed {len(results)} reviewed Slovak spans", flush=True)
+    print(f"Completed {len(results)} reviewed {args.language} spans", flush=True)
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--segments", type=Path, required=True)
     p.add_argument("--output-dir", type=Path, required=True)
-    p.add_argument("--voice", default="en-US-BrianMultilingualNeural")
+    p.add_argument("--voice", default="sk-SK-LukasNeural")
+    p.add_argument("--language", choices=("sk", "en"), default="sk")
     p.add_argument("--rate", default="+0%")
     p.add_argument("--concurrency", type=int, default=2, choices=range(1, 5))
     p.add_argument("--manifest-name", default="manifest.json")

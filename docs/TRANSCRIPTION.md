@@ -57,6 +57,28 @@ silence, beam size 3, and `condition_on_previous_text=False`. No translation
 prompt is supplied. `--language auto` detects language per segment; `ru`, `sk`,
 and `uk` force the decoder language.
 
+## Bounded processing under memory pressure
+
+For lesson 576, the medium process was killed under the shared environment's
+memory pressure. The completed alternative used `small`, CPU int8, four
+threads, beam 3, and overlapping 90-second windows with three seconds of
+context on each side. Russian and Slovak were decoded sequentially in one
+model instance; uncertain short intervals were checked separately with beam 5.
+The smaller model still required editorial corrections and source-coverage
+checks. Do not treat decoder agreement as proof of every word or language.
+
+The CLI also accepts `--model small` and bounded `--start` / `--end` intervals:
+
+```bash
+.venv/asr/bin/python scripts/transcribe.py \
+  --input inputs/lesson.mp3 --output-dir work/lesson/chunk-000-sk \
+  --language sk --model small --threads 2 --start 0 --end 93 \
+  --download-root models/whisper
+```
+
+On later windows, subtract the overlap when building the unique reviewed
+transcript; never synthesize the same repeated recognition twice.
+
 ## Why both passes and text review are necessary
 
 In the pilot, automatic detection confidently selected Slovak for a window

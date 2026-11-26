@@ -146,8 +146,9 @@ def _sha256(path: Path) -> str:
 def assemble(manifest: Path, source_duration: float, output: Path, timeline: Path, *, pad_shorter: bool = True) -> dict:
     manifest, output, timeline = (Path(p).expanduser().resolve() for p in (manifest, output, timeline))
     spans = read_manifest(manifest, source_duration)
-    if output.suffix.lower() != ".mp3":
-        raise AssemblyError("output must have an .mp3 extension")
+    output_format = output.suffix.lower().lstrip(".")
+    if output_format not in {"mp3", "flac"}:
+        raise AssemblyError("output must have an .mp3 or .flac extension")
     if output == timeline:
         raise AssemblyError("audio and timeline output paths must be different")
     inputs = {manifest, *(span["audio_path"] for span in spans)}
@@ -214,29 +215,31 @@ def assemble(manifest: Path, source_duration: float, output: Path, timeline: Pat
             if reader.getnframes() != cursor:
                 raise AssemblyError("assembled PCM duration does not match the timeline")
 
-        encoded = temporary / "lesson.mp3"
+        encoded = temporary / ("lesson." + output_format)
+        codec_args = ["-c:a", "libmp3lame", "-b:a", "128k"] if output_format == "mp3" else ["-c:a", "flac"]
         _run([
             ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", str(pcm_path),
-            "-map", "0:a:0", "-map_metadata", "-1", "-c:a", "libmp3lame", "-b:a", "128k",
+            "-map", "0:a:0", "-map_metadata", "-1", *codec_args,
             "-ar", str(SAMPLE_RATE), "-ac", "1", str(encoded),
-        ], "MP3 encoding")
+        ], output_format + " encoding")
         probe = json.loads(_run([
             ffprobe, "-v", "error", "-select_streams", "a:0", "-show_entries",
             "stream=codec_name,sample_rate,channels:format=duration", "-of", "json", str(encoded),
-        ], "MP3 verification"))
+        ], output_format + " verification"))
         stream = probe.get("streams", [{}])[0]
         encoded_duration = float(probe["format"]["duration"])
-        if stream.get("codec_name") != "mp3" or stream.get("channels") != 1 or int(stream.get("sample_rate", 0)) != SAMPLE_RATE:
-            raise AssemblyError("encoded MP3 format verification failed")
+        if stream.get("codec_name") != output_format or stream.get("channels") != 1 or int(stream.get("sample_rate", 0)) != SAMPLE_RATE:
+            raise AssemblyError("encoded audio format verification failed")
         # MP3 container duration includes encoder delay/padding; the PCM timeline does not.
         if not math.isfinite(encoded_duration) or abs(encoded_duration - cursor / SAMPLE_RATE) > 0.15:
-            raise AssemblyError("encoded MP3 duration differs unexpectedly from the PCM timeline")
+            raise AssemblyError("encoded audio duration differs unexpectedly from the PCM timeline")
         report = {
             "schema_version": 1, "sample_rate": SAMPLE_RATE, "channels": 1,
-            "bitrate_kbps": 128,
+            "bitrate_kbps": 128 if output_format == "mp3" else None, "format": output_format,
             "timing_policy": "preserve_gaps_expand_speech_slots" if pad_shorter else "natural_speech_preserve_source_gaps",
             "source_duration": source_duration, "timeline_duration": _seconds(cursor),
-            "mp3_container_duration": encoded_duration,
+            "mp3_container_duration": encoded_duration if output_format == "mp3" else None,
+            "container_duration": encoded_duration,
             "total_expansion": _seconds(cursor - source_frames),
             "trailing_silence": _seconds(trailing), "segment_count": len(records),
             "segment_ids_verified_once": True, "manifest_sha256": _sha256(manifest),
@@ -266,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True, help="JSON array of source intervals and synthesized audio paths")
     parser.add_argument("--source-duration", type=float, required=True, help="complete original lesson duration in seconds")
-    parser.add_argument("--output", type=Path, required=True, help="destination .mp3 (mono, 24 kHz, 128 kbps)")
+    parser.add_argument("--output", type=Path, required=True, help="destination .mp3 (128 kbps) or lossless .flac; mono, 24 kHz")
     parser.add_argument("--timeline", type=Path, required=True, help="destination timing and integrity JSON")
     parser.add_argument("--natural-timing", action="store_true", help="preserve original pauses without adding silence when synthesized speech is shorter")
     args = parser.parse_args(argv)
