@@ -9,7 +9,7 @@ Its measured changes are punctuation timing and token-aligned noise removal.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 from pathlib import Path
@@ -72,6 +72,7 @@ class TeachingDurationEncoder:
         self.session, self.tokenizer = session, tokenizer
         self.frame_ms, self.settings = frame_ms, settings
         self.final_sentence = False
+        self.preserve_predicted_pauses = False
 
     def __getattr__(self, key):
         return getattr(self.session, key)
@@ -80,6 +81,11 @@ class TeachingDurationEncoder:
         import numpy as np
         acoustic, prosodic, durations = self.session.run(outputs, inputs)
         durations = np.asarray(durations).copy()
+        # A learned punctuation token can contain voiced articulation. Extending
+        # it is not equivalent to inserting silence. Colon/dash spans use the
+        # ordinary comma boundary and the source runtime's predicted durations.
+        if self.preserve_predicted_pauses:
+            return acoustic, prosodic, durations
         tokens = inputs["tokens"][0]
         for symbol, ms in self.settings.pauses_ms.items():
             token = self.tokenizer._token_to_id.get(symbol)
@@ -217,8 +223,18 @@ class TeachingVoice:
         from ukrainian_voices import SENTENCES
         from voice_delivery import condition_shared
         marked, stress_audit = self.prepare_text(text)
+        natural_boundaries = bool(re.search(r"[:—]", marked))
+        synthesis_text = re.sub(r"\s*[:—]\s*", ", ", marked) if natural_boundaries else marked
+        # This changes editorial punctuation only. Keep every reviewed word,
+        # manual stress mark and speaker profile; preserve coarticulation by
+        # synthesizing the complete sentence rather than isolated fragments.
+        lexical = lambda value: re.findall(r"[\w’']+", value, re.UNICODE)
+        if lexical(synthesis_text) != lexical(marked):
+            raise ValueError("Punctuation normalization changed reviewed words")
+        pause_settings = replace(self.settings, pauses_ms={}) if natural_boundaries else self.settings
+        self.model.encoder_session.preserve_predicted_pauses = natural_boundaries
         clips, sentences = [], []
-        sentence_matches = list(SENTENCES.finditer(marked))
+        sentence_matches = list(SENTENCES.finditer(synthesis_text))
         for sentence_index, sentence in enumerate(sentence_matches):
             written = sentence.group().strip()
             phonemes = ipa(written)
@@ -232,7 +248,7 @@ class TeachingVoice:
                 raise ValueError("Cannot bind audio to phoneme tokens")
             wave, silenced, begin, end = quiet_aligned_pauses(
                 result.audio, tokens, result.durations, self.model.tokenizer.vocab,
-                result.sample_rate, self.model.samples_per_frame, self.settings)
+                result.sample_rate, self.model.samples_per_frame, pause_settings)
             delivery = self.engine.delivery_profiles.get(self.profile)
             if delivery:
                 wave = np.concatenate(list(condition_shared(
@@ -253,7 +269,10 @@ class TeachingVoice:
             clips.append(wave)
         if not clips:
             raise ValueError("No Ukrainian speech to render")
-        self.last_report = {"marked_text": marked, "word_stress": stress_audit,
+        self.last_report = {"marked_text": marked, "synthesis_text": synthesis_text,
+                            "punctuation_strategy": "comma_boundaries_with_predicted_durations"
+                                if natural_boundaries else "reviewed_token_durations",
+                            "word_stress": stress_audit,
                             "unresolved_words": sorted(set(x["word"] for x in stress_audit
                                                            if x["status"] == "unresolved")),
                             "sentences": sentences,

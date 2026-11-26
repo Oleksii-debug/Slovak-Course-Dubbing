@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 import unittest
 
 import numpy as np
@@ -15,6 +16,22 @@ spec.loader.exec_module(teaching)
 
 
 class BoundaryCleanupTests(unittest.TestCase):
+    def test_natural_boundary_mode_never_extends_learned_punctuation(self):
+        # A short learned comma may contain articulation. The production fix
+        # must not turn it into a longer voiced sound by overriding duration.
+        vocabulary = ["$", "a", ",", "."]
+        durations = np.array([[2, 5, 3, 7, 1, 2]], dtype=np.int64)
+        session = SimpleNamespace(run=lambda outputs, inputs: (
+            np.zeros((1, 6, 1)), np.zeros((1, 6, 1)), durations.copy()))
+        tokenizer = SimpleNamespace(vocab=vocabulary,
+            _token_to_id={symbol: index for index, symbol in enumerate(vocabulary)})
+        encoder = teaching.TeachingDurationEncoder(
+            session, tokenizer, 25.0, teaching.TeachingSettings())
+        encoder.preserve_predicted_pauses = True
+        encoder.final_sentence = True
+        _, _, actual = encoder.run(None, {"tokens": np.array([[0, 1, 2, 1, 3, 0]])})
+        np.testing.assert_array_equal(actual, durations)
+
     def test_initial_fricative_and_speech_samples_are_untouched(self):
         # Noise-like /sh/ is deliberately as quiet as padding; amplitude gating
         # would wrongly erase it. The cleanup must use phoneme alignment only.
